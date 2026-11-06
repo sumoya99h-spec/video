@@ -1,0 +1,26 @@
+[
+  {
+    "id": "92ae731e-1bf9-4034-b140-080e2678fcbf",
+    "title": "video",
+    "description": "ergtr",
+    "driveLink": "https://drive.google.com/file/d/1Z8m06-2uBb0B6v4KGmoS7sQvK_m4X9hB/view?usp=sharing",
+    "fileId": "1Z8m06-2uBb0B6v4KGmoS7sQvK_m4X9hB",
+    "embedUrl": "https://drive.google.com/file/d/1Z8m06-2uBb0B6v4KGmoS7sQvK_m4X9hB/preview",
+    "downloadUrl": "https://drive.google.com/uc?export=download&id=1Z8m06-2uBb0B6v4KGmoS7sQvK_m4X9hB",
+    "viewUrl": "https://drive.google.com/file/d/1Z8m06-2uBb0B6v4KGmoS7sQvK_m4X9hB/view",
+    "thumbnail": "https://drive.google.com/thumbnail?id=1Z8m06-2uBb0B6v4KGmoS7sQvK_m4X9hB&sz=w400",
+    "category": "General",
+    "published": true,
+    "ads": {
+      "topBanner": "",
+      "playerTop": "",
+      "playerBottom": "",
+      "bottomBanner": "",
+      "sidebar": "",
+      "native": "",
+      "popup": ""
+    },
+    "createdAt": "2026-11-06T22:32:01.714Z",
+    "views": 4
+  }
+]

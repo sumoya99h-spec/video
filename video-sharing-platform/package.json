@@ -1,0 +1,19 @@
+{
+  "name": "video-sharing-platform",
+  "version": "1.0.0",
+  "description": "Google Drive video sharing website with Admin Panel and Adsterra ad control (per-video)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "body-parser": "^1.20.3",
+    "cookie-parser": "^1.4.6",
+    "uuid": "^10.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
