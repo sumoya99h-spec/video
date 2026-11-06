@@ -4,6 +4,9 @@ const $$ = (sel, el = document) => [...el.querySelectorAll(sel)];
 
 let currentVideos = [];
 let siteSettings = { siteName: 'Drive Video Share', siteDescription: '' };
+let activeUnlockObserver = null;
+let activeUnlockCleanup = null;
+const unlockedVideos = new Set();
 
 function toast(msg, type = 'success') {
   const t = document.createElement('div');
@@ -113,7 +116,8 @@ function renderVideoCards(videos) {
   }
   return videos.map(v => `
     <div class="video-card" data-id="${v.id}">
-      <img src="${v.thumbnail || ''}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="this.src='https://via.placeholder.com/400x225/1e293b/94a3b8?text=No+Thumbnail'" />
+      ${v.thumbnail ? `<img src="${v.thumbnail}" alt="${escapeHtml(v.title)}" loading="lazy" onerror="showThumbnailFallback(this)" />` : ''}
+      <div class="video-thumbnail-fallback" ${v.thumbnail ? 'hidden' : ''} aria-hidden="true"><span>▶</span><small>ভিডিও</small></div>
       <div class="video-card-body">
         <div class="video-card-title">${escapeHtml(v.title)}</div>
         <div class="video-card-meta">
@@ -123,6 +127,12 @@ function renderVideoCards(videos) {
       </div>
     </div>
   `).join('');
+}
+
+function showThumbnailFallback(image) {
+  image.hidden = true;
+  const fallback = image.nextElementSibling;
+  if (fallback) fallback.hidden = false;
 }
 
 function filterVideos() {
@@ -143,15 +153,20 @@ function filterVideos() {
 }
 
 // ==================== VIDEO PAGE ====================
-async function renderVideoPage(id) {
+async function renderVideoPage(id, countView = true) {
   const main = $('#mainContent');
+  if (activeUnlockCleanup) {
+    activeUnlockCleanup();
+    activeUnlockCleanup = null;
+  }
   main.innerHTML = `<div class="container"><div class="loading">ভিডিও লোড হচ্ছে...</div></div>`;
 
   let video;
   try {
     video = await api(`/api/video/${id}`);
-    // Increment view
-    api(`/api/video/${id}/view`, { method: 'POST' }).catch(() => {});
+    if (countView) {
+      api(`/api/video/${id}/view`, { method: 'POST' }).catch(() => {});
+    }
   } catch (e) {
     main.innerHTML = `<div class="container"><div class="empty-state"><h3>ভিডিও পাওয়া যায়নি</h3><p><a href="/" style="color:var(--primary)">হোমে ফিরে যান</a></p></div></div>`;
     return;
@@ -166,6 +181,8 @@ async function renderVideoPage(id) {
   } catch (e) {}
 
   const ads = video.ads || {};
+  const isLocked = video.unlockWithAds === true && !isVideoUnlocked(id);
+  const unlockAdsConfigured = Boolean(ads.playerTop && ads.playerBottom);
 
   main.innerHTML = `
     <div class="container">
@@ -175,14 +192,33 @@ async function renderVideoPage(id) {
           <div class="ad-slot top" id="ad-top">${ads.topBanner || ''}</div>
 
           <!-- Player Top Ad -->
-          <div class="ad-slot" id="ad-player-top">${ads.playerTop || ''}</div>
+          ${isLocked ? '' : `<div class="ad-slot" id="ad-player-top">${ads.playerTop || ''}</div>`}
 
-          <div class="player-wrapper">
-            <iframe src="${video.embedUrl}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
-          </div>
+          ${isLocked ? `
+            <section class="video-unlock" id="videoUnlock">
+              <h2>ভিডিও আনলক করুন</h2>
+              <p>ভিডিও দেখতে ও ডাউনলোড করতে নিচের দুটি বিজ্ঞাপন দেখুন। বিজ্ঞাপনে ক্লিক করার প্রয়োজন নেই।</p>
+              <div class="unlock-ad-slots">
+                <div class="unlock-ad-item">
+                  <h3>বিজ্ঞাপন ১</h3>
+                  <div class="unlock-ad-slot" id="unlock-ad-one">${ads.playerTop || '<p>এই বিজ্ঞাপনটি সেট করা নেই।</p>'}</div>
+                </div>
+                <div class="unlock-ad-item">
+                  <h3>বিজ্ঞাপন ২</h3>
+                  <div class="unlock-ad-slot" id="unlock-ad-two">${ads.playerBottom || '<p>এই বিজ্ঞাপনটি সেট করা নেই।</p>'}</div>
+                </div>
+              </div>
+              <p class="unlock-progress" id="unlockProgress">${unlockAdsConfigured ? 'বিজ্ঞাপন দেখা হয়েছে: ০/২' : 'এই ভিডিওর জন্য Player-এর উপরে ও নিচে—দুটি Ad Code সেট করতে হবে।'}</p>
+              <button class="btn btn-primary" id="unlockVideoBtn" disabled>ভিডিও আনলক করুন</button>
+            </section>
+          ` : `
+            <div class="player-wrapper">
+              <iframe src="${video.embedUrl}" allow="autoplay; encrypted-media" allowfullscreen></iframe>
+            </div>
+          `}
 
           <!-- Player Bottom Ad -->
-          <div class="ad-slot" id="ad-player-bottom">${ads.playerBottom || ''}</div>
+          ${isLocked ? '' : `<div class="ad-slot" id="ad-player-bottom">${ads.playerBottom || ''}</div>`}
 
           <div class="video-info">
             <h1>${escapeHtml(video.title)}</h1>
@@ -193,7 +229,7 @@ async function renderVideoPage(id) {
             </div>
             <div class="video-desc">${escapeHtml(video.description || '')}</div>
             <div class="action-buttons">
-              <a href="${video.downloadUrl}" class="btn btn-success" target="_blank" rel="noopener">⬇️ ডাউনলোড</a>
+              ${isLocked ? '<span class="btn btn-disabled" aria-disabled="true">🔒 আনলক করলে ডাউনলোড করতে পারবেন</span>' : `<a href="${video.downloadUrl}" class="btn btn-success" target="_blank" rel="noopener">⬇️ ডাউনলোড</a>`}
               <!-- <a href="${video.viewUrl}" class="btn btn-secondary" target="_blank" rel="noopener">🔗 Google Drive এ খুলুন</a> -->
               <button class="btn btn-secondary" onclick="shareVideo('${video.id}', '${escapeHtml(video.title)}')">📤 শেয়ার</button>
               <a href="/" class="btn btn-secondary">← ফিরে যান</a>
@@ -214,6 +250,11 @@ async function renderVideoPage(id) {
       </div>
     </div>
   `;
+
+  $$('.ad-slot', main).forEach(activateAdScripts);
+  if (isLocked && unlockAdsConfigured) {
+    setupVideoUnlock(id);
+  }
 
   // Load related
   try {
@@ -244,6 +285,78 @@ async function renderVideoPage(id) {
     div.innerHTML = ads.popup;
     document.body.appendChild(div);
   }
+}
+
+function isVideoUnlocked(id) {
+  if (unlockedVideos.has(id)) return true;
+  try {
+    return localStorage.getItem(`video-unlocked-${id}`) === 'true';
+  } catch (e) {
+    return false;
+  }
+}
+
+function setupVideoUnlock(id) {
+  const progress = $('#unlockProgress');
+  const unlockButton = $('#unlockVideoBtn');
+  const seenAds = new Set();
+  const timers = new Map();
+  const adSlots = [$('#unlock-ad-one'), $('#unlock-ad-two')];
+
+  adSlots.forEach(activateAdScripts);
+
+  if (!('IntersectionObserver' in window)) {
+    progress.textContent = 'আপনার ব্রাউজার বিজ্ঞাপন দেখা যাচাই করতে পারছে না। একটি আধুনিক ব্রাউজার ব্যবহার করুন।';
+    return;
+  }
+
+  activeUnlockObserver = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      const slot = entry.target;
+      if (seenAds.has(slot)) return;
+
+      if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+        if (!timers.has(slot)) {
+          timers.set(slot, setTimeout(() => {
+            seenAds.add(slot);
+            timers.delete(slot);
+            progress.textContent = `বিজ্ঞাপন দেখা হয়েছে: ${seenAds.size}/২`;
+            unlockButton.disabled = seenAds.size < 2;
+          }, 1000));
+        }
+      } else if (timers.has(slot)) {
+        clearTimeout(timers.get(slot));
+        timers.delete(slot);
+      }
+    });
+  }, { threshold: 0.5 });
+
+  activeUnlockCleanup = () => {
+    activeUnlockObserver?.disconnect();
+    timers.forEach(timer => clearTimeout(timer));
+    timers.clear();
+    activeUnlockObserver = null;
+  };
+
+  adSlots.forEach(slot => activeUnlockObserver.observe(slot));
+  unlockButton.addEventListener('click', () => {
+    unlockedVideos.add(id);
+    try {
+      localStorage.setItem(`video-unlocked-${id}`, 'true');
+    } catch (e) {
+      toast('এই ব্রাউজারে আনলক সংরক্ষণ করা যায়নি; পেজ খোলা থাকা পর্যন্ত চালু থাকবে।', 'error');
+    }
+    renderVideoPage(id, false);
+  });
+}
+
+function activateAdScripts(container) {
+  $$('script', container).forEach(oldScript => {
+    const script = document.createElement('script');
+    [...oldScript.attributes].forEach(attribute => script.setAttribute(attribute.name, attribute.value));
+    script.textContent = oldScript.textContent;
+    oldScript.replaceWith(script);
+  });
 }
 
 function shareVideo(id, title) {
@@ -457,6 +570,14 @@ async function renderAdminForm(editId = null) {
         </label>
       </div>
 
+      <div class="form-group">
+        <label>
+          <input type="checkbox" name="unlockWithAds" ${video?.unlockWithAds === true ? 'checked' : ''} style="width:auto;margin-right:8px" />
+          দুটি বিজ্ঞাপন দেখার পর ভিডিও ও ডাউনলোড আনলক করুন
+        </label>
+        <p class="hint">চালু করলে Player-এর উপরে ও নিচে—দুটি Ad Code দিতে হবে। দুটো স্লট অন্তত ১ সেকেন্ড দৃশ্যমান হলে আনলক হবে; বিজ্ঞাপনে ক্লিক বাধ্যতামূলক নয়।</p>
+      </div>
+
       <!-- Per-video Ads -->
       <div class="ads-section">
         <h4>📢 Adsterra Ads (এই ভিডিওর জন্য আলাদা)</h4>
@@ -510,6 +631,7 @@ async function saveVideo(e, editId) {
     thumbnail: form.thumbnail.value.trim(),
     description: form.description.value.trim(),
     published: form.published.checked,
+    unlockWithAds: form.unlockWithAds.checked,
     ads: {
       topBanner: form.ad_topBanner.value.trim(),
       playerTop: form.ad_playerTop.value.trim(),

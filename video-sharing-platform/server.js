@@ -153,6 +153,7 @@ app.post('/api/admin/videos', isAdmin, (req, res) => {
     thumbnail,
     category,
     published,
+    unlockWithAds,
     ads  // object: { topBanner, bottomBanner, playerTop, playerBottom, sidebar, popup, native }
   } = req.body;
 
@@ -173,6 +174,7 @@ app.post('/api/admin/videos', isAdmin, (req, res) => {
     thumbnail: thumbnail || `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`,
     category: category || 'General',
     published: published !== false,
+    unlockWithAds: unlockWithAds === true,
     ads: ads || {},
     createdAt: new Date().toISOString(),
     views: 0
@@ -206,6 +208,7 @@ app.put('/api/admin/videos/:id', isAdmin, (req, res) => {
     thumbnail: body.thumbnail ?? videos[idx].thumbnail,
     category: body.category ?? videos[idx].category,
     published: body.published !== undefined ? body.published : videos[idx].published,
+    unlockWithAds: body.unlockWithAds !== undefined ? body.unlockWithAds === true : videos[idx].unlockWithAds === true,
     ads: body.ads ?? videos[idx].ads,
     updatedAt: new Date().toISOString()
   };
