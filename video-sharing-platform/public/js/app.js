@@ -87,6 +87,8 @@ async function renderHome() {
       <h1 class="page-title">${siteSettings.siteName || 'Drive Video Share'}</h1>
       <p class="page-desc">${siteSettings.siteDescription || 'Google Drive থেকে ভিডিও শেয়ার ও ডাউনলোড করুন'}</p>
 
+      <div class="ad-slot top home-ad" id="home-top-ad">${siteSettings.homeTopBanner || ''}</div>
+
       <div class="search-bar">
         <input type="text" id="searchInput" placeholder="ভিডিও খুঁজুন..." />
         <select id="categoryFilter">
@@ -101,6 +103,7 @@ async function renderHome() {
     </div>
   `;
 
+  activateAdScripts($('#home-top-ad'));
   $('#searchInput').addEventListener('input', filterVideos);
   $('#categoryFilter').addEventListener('change', filterVideos);
 
@@ -684,9 +687,9 @@ async function renderAdminSettings() {
 
       <div class="ads-section">
         <h4>📢 Global Default Ad Codes (optional)</h4>
-        <p class="hint">এগুলো শুধু রেফারেন্সের জন্য। আসল ad প্রতি ভিডিওতে আলাদা করে সেট করতে হবে।</p>
+        <p class="hint">Default Top Banner হোমপেজের উপরে দেখাবে। অন্য global code ভিডিও পেজের জন্য fallback হিসেবে ব্যবহার হবে না।</p>
         <div class="form-group">
-          <label>Default Top Banner</label>
+          <label>হোমপেজের উপরের বিজ্ঞাপন (Default Top Banner)</label>
           <textarea name="ad_topBanner">${escapeHtml(settings.adsterra?.topBanner || '')}</textarea>
         </div>
         <div class="form-group">
@@ -731,6 +734,7 @@ async function saveSettings(e) {
   try {
     await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify(data) });
     siteSettings = { ...siteSettings, ...data, _loaded: true };
+    siteSettings.homeTopBanner = data.adsterra.topBanner;
     $('#siteLogo').textContent = data.siteName;
     toast('Settings সেভ হয়েছে!');
   } catch (err) {

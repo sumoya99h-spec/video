@@ -111,7 +111,8 @@ app.get('/api/video/:id', (req, res) => {
 app.get('/api/settings', (req, res) => {
   res.json({
     siteName: settings.siteName,
-    siteDescription: settings.siteDescription
+    siteDescription: settings.siteDescription,
+    homeTopBanner: settings.adsterra?.topBanner || ''
   });
 });
 

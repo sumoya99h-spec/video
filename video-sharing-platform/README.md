@@ -103,6 +103,10 @@ Admin Panel → Video Add/Edit থেকে **দুটি বিজ্ঞাপ
 
 এটি ওয়েবসাইটের UI-ভিত্তিক আনলক; Google Drive-এর Anyone-with-the-link লিংক সরাসরি শেয়ার বা API দিয়ে পাওয়া গেলে Drive-এ ভিডিও আলাদাভাবেও খোলা/ডাউনলোড করা সম্ভব। সত্যিকারের ad impression যাচাই বা Drive ফাইল সুরক্ষিত করতে provider-এর অনুমোদিত rewarded-ad যাচাই ও private file delivery দরকার।
 
+### হোমপেজে বিজ্ঞাপন
+
+Admin Panel → Settings & Ads → **হোমপেজের উপরের বিজ্ঞাপন (Default Top Banner)** ঘরে সম্পূর্ণ ad script code দিন এবং Settings সেভ করুন। বিজ্ঞাপনটি হোমপেজের শিরোনামের নিচে ও ভিডিও তালিকার উপরে দেখাবে।
+
 ---
 
 ## 🔒 সিকিউরিটি নোট
